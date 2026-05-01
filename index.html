@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BJMP AI Knowledge Base</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #0d2137;
+      --navy-light: #163250;
+      --gold: #c8a84b;
+      --gold-light: #e8c96d;
+      --white: #f5f3ee;
+      --gray-100: #edeae3;
+      --gray-200: #d5d1c8;
+      --gray-400: #9a9690;
+      --gray-600: #5a5750;
+      --text: #1a1816;
+      --text-muted: #6b6860;
+      --success: #2a7a4b;
+      --danger: #9b2020;
+      --radius: 8px;
+      --radius-lg: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--gray-100);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--navy);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 64px;
+      border-bottom: 2px solid var(--gold);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: var(--gold);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 13px; color: var(--navy);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 16px; font-weight: 600; color: var(--white); letter-spacing: 0.02em; }
+    header p { font-size: 12px; color: var(--gold-light); font-family: 'IBM Plex Mono', monospace; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .api-status { font-size: 12px; font-family: 'IBM Plex Mono', monospace; padding: 4px 10px; border-radius: 20px; border: 1px solid; }
+    .api-status.ok { color: #4ade80; border-color: #4ade80; background: rgba(74,222,128,0.08); }
+    .api-status.err { color: #f87171; border-color: #f87171; background: rgba(248,113,113,0.08); }
+
+    /* SETUP BANNER */
+    #setupBanner {
+      background: #fff8e6;
+      border-bottom: 1px solid #e8c96d;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #7a5a00;
+    }
+    #setupBanner input {
+      flex: 1; max-width: 380px;
+      padding: 7px 12px;
+      border: 1px solid #e8c96d;
+      border-radius: var(--radius);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+    }
+    #setupBanner button {
+      padding: 7px 16px;
+      background: var(--navy);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* MAIN LAYOUT */
+    .main { display: flex; flex: 1; height: calc(100vh - 64px); overflow: hidden; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 280px; flex-shrink: 0;
+      background: var(--navy-light);
+      display: flex; flex-direction: column;
+      border-right: 1px solid rgba(200,168,75,0.2);
+      overflow: hidden;
+    }
+    .sidebar-section { padding: 14px 16px 8px; font-size: 11px; font-weight: 600; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px;
+      background: none; border: none; width: 100%;
+      text-align: left; cursor: pointer;
+      color: rgba(245,243,238,0.7);
+      font-size: 14px; font-family: 'IBM Plex Sans', sans-serif;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--white); }
+    .nav-btn.active { background: rgba(200,168,75,0.12); color: var(--gold-light); border-left-color: var(--gold); }
+    .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+    .doc-count { margin-left: auto; font-size: 11px; background: rgba(200,168,75,0.2); color: var(--gold-light); padding: 2px 7px; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; }
+
+    .sidebar-docs { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
+    .doc-chip {
+      padding: 8px 10px; border-radius: var(--radius);
+      margin-bottom: 4px; cursor: pointer;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.15s;
+    }
+    .doc-chip:hover { background: rgba(255,255,255,0.08); border-color: rgba(200,168,75,0.3); }
+    .doc-chip p { font-size: 12px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-chip span { font-size: 11px; color: rgba(245,243,238,0.4); font-family: 'IBM Plex Mono', monospace; }
+    .tag-pill { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: rgba(200,168,75,0.2); color: var(--gold-light); margin-top: 3px; }
+
+    /* CONTENT AREA */
+    .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* PANELS */
+    .panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .panel.active { display: flex; }
+
+    /* CHAT PANEL */
+    .chat-messages {
+      flex: 1; overflow-y: auto;
+      padding: 20px 24px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .bubble-wrap { display: flex; flex-direction: column; }
+    .bubble-wrap.user { align-items: flex-end; }
+    .bubble-wrap.ai { align-items: flex-start; }
+    .bubble-sender { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-family: 'IBM Plex Mono', monospace; }
+    .bubble {
+      max-width: 72%; padding: 12px 16px;
+      font-size: 14px; line-height: 1.65;
+      border-radius: var(--radius-lg);
+    }
+    .bubble.user { background: var(--navy); color: var(--white); border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg); }
+    .bubble.ai { background: #fff; color: var(--text); border: 1px solid var(--gray-200); border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px; }
+    .typing span { display: inline-block; width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; margin: 0 2px; animation: bounce 1s infinite; }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+    .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 24px 16px; }
+    .quick-btn {
+      padding: 7px 14px; background: #fff; border: 1px solid var(--gray-200);
+      border-radius: 20px; font-size: 13px; color: var(--navy);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .quick-btn:hover { border-color: var(--navy); background: var(--navy); color: var(--white); }
+
+    .chat-input-row {
+      display: flex; gap: 10px; padding: 14px 24px;
+      border-top: 1px solid var(--gray-200);
+      background: #fff;
+    }
+    .chat-input-row input {
+      flex: 1; padding: 11px 16px;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      font-size: 14px; font-family: 'IBM Plex Sans', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .chat-input-row input:focus { border-color: var(--navy); }
+    .send-btn {
+      padding: 11px 22px;
+      background: var(--navy); color: var(--white);
+      border: none; border-radius: var(--radius-lg);
+      font-size: 14px; font-family: 'IBM Plex Sans', sans-serif;
+      cursor: pointer; font-weight: 500;
+      transition: background 0.15s;
+    }
+    .send-btn:hover { background: var(--navy-light); }
+
+    /* DOCS PANEL */
+    .docs-content { flex: 1; overflow-y: auto; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: start; }
+    .card {
+      background: #fff; border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg); padding: 20px;
+    }
+    .card h2 { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .upload-zone {
+      border: 2px dashed var(--gray-200); border-radius: var(--radius);
+      padding: 28px 20px; text-align: center; cursor: pointer;
+      transition: all 0.15s; margin-bottom: 12px;
+    }
+    .upload-zone:hover { border-color: var(--navy); background: #f0f4f8; }
+    .upload-zone .icon { font-size: 28px; margin-bottom: 6px; }
+    .upload-zone p { font-size: 13px; color: var(--text-muted); }
+    .upload-zone strong { color: var(--navy); }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid var(--gray-200); border-radius: var(--radius);
+      font-size: 13px; font-family: 'IBM Plex Sans', sans-serif;
+      color: var(--text); outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--navy); }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+    .btn { padding: 9px 20px; border: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-weight: 500; font-family: 'IBM Plex Sans', sans-serif; }
+    .btn-primary { background: var(--navy); color: var(--white); }
+    .btn-primary:hover { background: var(--navy-light); }
+    .btn-full { width: 100%; }
+
+    /* SEARCH PANEL */
+    .search-content { flex: 1; overflow-y: auto; padding: 24px; }
+    .search-top { display: flex; gap: 10px; margin-bottom: 20px; }
+    .search-top input {
+      flex: 1; padding: 11px 16px;
+      border: 1px solid var(--gray-200); border-radius: var(--radius-lg);
+      font-size: 14px; font-family: 'IBM Plex Sans', sans-serif; color: var(--text); outline: none;
+    }
+    .search-top input:focus { border-color: var(--navy); }
+    .search-top button {
+      padding: 11px 22px; background: var(--navy); color: var(--white);
+      border: none; border-radius: var(--radius-lg); font-size: 14px; cursor: pointer;
+    }
+    .result-card {
+      background: #fff; border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg); padding: 16px 20px;
+      margin-bottom: 10px; cursor: pointer;
+      transition: all 0.15s; border-left: 4px solid transparent;
+    }
+    .result-card:hover { border-left-color: var(--gold); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .result-card h3 { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+    .result-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .result-meta { display: flex; gap: 8px; margin-top: 8px; }
+    .badge { font-size: 11px; padding: 2px 9px; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; }
+    .badge-memo { background: #e8f0fb; color: #1a3a7c; }
+    .badge-policy { background: #fdf0e0; color: #8a5200; }
+    .badge-procedure { background: #e8f6ee; color: #1a5c38; }
+    .badge-manual { background: #f0eaf8; color: #4a1a8c; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--navy); color: var(--white);
+      padding: 12px 20px; border-radius: var(--radius-lg);
+      font-size: 13px; border-left: 4px solid var(--gold);
+      transform: translateY(80px); opacity: 0;
+      transition: all 0.3s; z-index: 999;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .docs-content { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BJMP</div>
+  <div>
+    <h1>BJMP AI Knowledge Base</h1>
+    <p>Bureau of Jail Management and Penology</p>
+  </div>
+  <div class="header-right">
+    <div class="api-status err" id="apiStatus">⬤ No API Key</div>
+  </div>
+</header>
+
+<div id="setupBanner">
+  <span>⚠️ I-enter ang inyong Anthropic API Key para gumana ang AI:</span>
+  <input type="password" id="apiKeyInput" placeholder="sk-groq-..." />
+  <button onclick="saveApiKey()">I-save</button>
+  <a href="https://console.groq.com" target="_blank" style="color:#7a5a00;font-size:12px;margin-left:4px;">Kumuha ng LIBRENG key sa Groq →</a>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-section">Menu</div>
+    <button class="nav-btn active" onclick="showPanel('chat', this)">
+      <span class="nav-icon">💬</span> AI Chat
+    </button>
+    <button class="nav-btn" onclick="showPanel('docs', this)">
+      <span class="nav-icon">📄</span> Mga Dokumento
+      <span class="doc-count" id="docCount">0</span>
+    </button>
+    <button class="nav-btn" onclick="showPanel('search', this)">
+      <span class="nav-icon">🔍</span> Maghanap
+    </button>
+
+    <div class="sidebar-section" style="margin-top:8px;">Mga Naka-save</div>
+    <div class="sidebar-docs" id="sidebarDocs">
+      <div style="padding:12px 8px;font-size:12px;color:rgba(245,243,238,0.35);font-style:italic;">
+        Walang dokumento pa.
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- CHAT PANEL -->
+    <div class="panel active" id="panel-chat">
+      <div class="chat-messages" id="messages">
+        <div class="bubble-wrap ai">
+          <div class="bubble-sender">BJMP AI Assistant</div>
+          <div class="bubble ai">
+            Magandang araw po! Ako ang inyong BJMP AI Assistant.<br><br>
+            Maaari akong sumagot ng mga tanong tungkol sa mga <strong>memo, policy, circular, at procedures</strong> ng BJMP. I-upload muna ang inyong mga dokumento sa <em>Mga Dokumento</em> tab, tapos magtanong kayo dito.
+          </div>
+        </div>
+      </div>
+      <div class="quick-btns" id="quickBtns">
+        <button class="quick-btn" onclick="askQuick('Ano ang mga karapatan ng mga bilanggo sa BJMP?')">Karapatan ng bilanggo</button>
+        <button class="quick-btn" onclick="askQuick('Ano ang proseso ng pagbisita ng pamilya?')">Proseso ng pagbisita</button>
+        <button class="quick-btn" onclick="askQuick('Ipaliwanag ang BJMP disciplinary procedure.')">Disciplinary procedure</button>
+        <button class="quick-btn" onclick="askQuick('Ano ang pinakabagong memo?')">Pinakabagong memo</button>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Magtanong tungkol sa BJMP policies, memos, procedures..." onkeydown="if(event.key==='Enter')sendChat()" />
+        <button class="send-btn" onclick="sendChat()">Ipadala ↑</button>
+      </div>
+    </div>
+
+    <!-- DOCS PANEL -->
+    <div class="panel" id="panel-docs">
+      <div class="docs-content">
+        <div class="card">
+          <h2>📂 Mag-upload ng File</h2>
+          <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+            <div class="icon">📄</div>
+            <p><strong>Pumili ng file</strong> o i-drag dito</p>
+            <p style="margin-top:4px;font-size:12px;">Tinatanggap: PDF, DOC, DOCX, TXT</p>
+          </div>
+          <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.txt" multiple onchange="handleFileUpload(event)" />
+          <div class="form-group">
+            <label>Kategorya</label>
+            <select id="uploadCategory">
+              <option>Memo</option>
+              <option>Policy</option>
+              <option>Circular</option>
+              <option>Procedure</option>
+              <option>Manual</option>
+              <option>Iba pa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>✏️ I-paste ang Content</h2>
+          <div class="form-group">
+            <label>Titulo ng Dokumento</label>
+            <input type="text" id="pasteTitle" placeholder="hal. Memo No. 2024-01: Bagong Uniform Policy" />
+          </div>
+          <div class="form-group">
+            <label>Kategorya</label>
+            <select id="pasteCategory">
+              <option>Memo</option>
+              <option>Policy</option>
+              <option>Circular</option>
+              <option>Procedure</option>
+              <option>Manual</option>
+              <option>Iba pa</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Content ng Dokumento</label>
+            <textarea id="pasteContent" placeholder="I-paste dito ang buong text ng memo o policy..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="savePasted()">I-save ang Dokumento</button>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2>📋 Lahat ng Dokumento <span style="font-size:13px;font-weight:400;color:var(--text-muted)" id="totalDocs">(0 dokumento)</span></h2>
+          <div id="allDocsList" style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:13px;color:var(--text-muted);font-style:italic;padding:8px 0;">Walang dokumento pa. Mag-upload o mag-paste ng content.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH PANEL -->
+    <div class="panel" id="panel-search">
+      <div class="search-content">
+        <div class="search-top">
+          <input type="text" id="searchInput" placeholder="Halimbawa: visitation, uniform, disciplinary, memo 2024..." onkeydown="if(event.key==='Enter')doSearch()" />
+          <button onclick="doSearch()">🔍 Hanapin</button>
+        </div>
+        <div id="searchResults">
+          <div style="font-size:13px;color:var(--text-muted);text-align:center;padding:40px;">
+            Mag-type ng keyword para maghanap sa mga dokumento.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let docs = JSON.parse(localStorage.getItem('bjmp_docs') || '[]');
+  let apiKey = localStorage.getItem('bjmp_api_key') || '';
+  let chatHistory = [];
+
+  function init() {
+    if (apiKey) {
+      document.getElementById('apiKeyInput').value = apiKey;
+      document.getElementById('setupBanner').style.display = 'none';
+      document.getElementById('apiStatus').textContent = '⬤ AI Ready';
+      document.getElementById('apiStatus').className = 'api-status ok';
+    }
+    renderDocs();
+  }
+
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key.startsWith('gsk_') && !key.startsWith('sk-')) return showToast('Hindi valid ang Groq API key.');
+    apiKey = key;
+    localStorage.setItem('bjmp_api_key', key);
+    document.getElementById('setupBanner').style.display = 'none';
+    document.getElementById('apiStatus').textContent = '⬤ AI Ready';
+    document.getElementById('apiStatus').className = 'api-status ok';
+    showToast('API Key naka-save na!');
+  }
+
+  function showPanel(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function getCategoryBadge(cat) {
+    const map = { 'Memo':'badge-memo','Policy':'badge-policy','Circular':'badge-policy','Procedure':'badge-procedure','Manual':'badge-manual' };
+    return `<span class="badge ${map[cat]||'badge-memo'}">${cat}</span>`;
+  }
+
+  function renderDocs() {
+    document.getElementById('docCount').textContent = docs.length;
+    document.getElementById('totalDocs').textContent = `(${docs.length} dokumento)`;
+
+    const sidebar = document.getElementById('sidebarDocs');
+    sidebar.innerHTML = docs.length ? docs.map((d,i) => `
+      <div class="doc-chip" onclick="askAbout('Ipaliwanag ang ${d.title}')">
+        <p>${d.title}</p>
+        <span class="tag-pill">${d.category}</span>
+      </div>`).join('') : '<div style="padding:12px 8px;font-size:12px;color:rgba(245,243,238,0.35);font-style:italic;">Walang dokumento pa.</div>';
+
+    const list = document.getElementById('allDocsList');
+    list.innerHTML = docs.length ? docs.map((d,i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius);">
+        <div style="width:36px;height:36px;background:#e8eff7;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--navy);flex-shrink:0;">${d.category.slice(0,3).toUpperCase()}</div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.title}</p>
+          <span style="font-size:12px;color:var(--text-muted);">${d.date} • ${d.content.length} characters</span>
+        </div>
+        ${getCategoryBadge(d.category)}
+        <button onclick="deleteDoc(${i})" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--gray-400);padding:4px;">🗑</button>
+      </div>`).join('') : '<div style="font-size:13px;color:var(--text-muted);font-style:italic;padding:8px 0;">Walang dokumento pa.</div>';
+  }
+
+  function deleteDoc(i) {
+    if (!confirm('I-delete ang dokumentong ito?')) return;
+    docs.splice(i, 1);
+    localStorage.setItem('bjmp_docs', JSON.stringify(docs));
+    renderDocs();
+    showToast('Na-delete ang dokumento.');
+  }
+
+  function handleFileUpload(e) {
+    const files = Array.from(e.target.files);
+    const cat = document.getElementById('uploadCategory').value;
+    let loaded = 0;
+    files.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        docs.push({ title: f.name.replace(/\.[^.]+$/, ''), category: cat, content: ev.target.result, date: new Date().toLocaleDateString('fil-PH'), size: f.size });
+        localStorage.setItem('bjmp_docs', JSON.stringify(docs));
+        loaded++;
+        if (loaded === files.length) { renderDocs(); showToast(`${files.length} file(s) nai-upload na!`); }
+      };
+      reader.readAsText(f);
+    });
+    e.target.value = '';
+  }
+
+  function savePasted() {
+    const title = document.getElementById('pasteTitle').value.trim();
+    const content = document.getElementById('pasteContent').value.trim();
+    const cat = document.getElementById('pasteCategory').value;
+    if (!title) return showToast('Pakienter ang titulo ng dokumento.');
+    if (!content) return showToast('Walang content na naka-paste.');
+    docs.push({ title, category: cat, content, date: new Date().toLocaleDateString('fil-PH') });
+    localStorage.setItem('bjmp_docs', JSON.stringify(docs));
+    renderDocs();
+    document.getElementById('pasteTitle').value = '';
+    document.getElementById('pasteContent').value = '';
+    showToast('Nai-save na ang dokumento!');
+  }
+
+  function addBubble(role, html) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bubble-wrap ' + role;
+    const sender = role === 'ai' ? '<div class="bubble-sender">BJMP AI Assistant</div>' : '<div class="bubble-sender">Ikaw</div>';
+    wrap.innerHTML = sender + `<div class="bubble ${role}">${html}</div>`;
+    document.getElementById('messages').appendChild(wrap);
+    document.getElementById('messages').scrollTop = 99999;
+    return wrap;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const q = input.value.trim();
+    if (!q) return;
+    if (!apiKey) return showToast('I-enter muna ang API Key sa itaas.');
+    input.value = '';
+
+    addBubble('user', q);
+    chatHistory.push({ role: 'user', content: q });
+
+    const loadWrap = addBubble('ai', '<div class="typing"><span></span><span></span><span></span></div>');
+
+    const docsContext = docs.length
+      ? docs.map(d => `[${d.category}] ${d.title}:\n${d.content.substring(0, 1500)}`).join('\n\n---\n\n')
+      : 'Walang mga dokumento pa na nai-upload.';
+
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 1000,
+          messages: [
+            { role: 'system', content: `Ikaw ay isang AI assistant para sa Bureau of Jail Management and Penology (BJMP) ng Pilipinas. Ang iyong layunin ay tulungan ang mga BJMP personnel na mahanap at maunawaan ang mga memo, policy, circular, at procedures.
+
+RULES:
+- Sumagot LAMANG ng mga tanong na may kaugnayan sa BJMP o sa mga ibinigay na dokumento.
+- Kung walang relevant na dokumento, sabihing malinaw na kailangan i-upload muna ang dokumento.
+- Sumagot sa Filipino/Tagalog maliban kung ang tanong ay sa Ingles.
+- Maging tiyak at malinaw sa sagot. Banggit ang source kung saan nanggaling ang impormasyon.
+- Kung maaari, mag-cite ng specific na dokumento o memo number.
+
+MGA AVAILABLE NA DOKUMENTO:
+${docsContext}` },
+            ...chatHistory.slice(-10)
+          ]
+        })
+      });
+      const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content || 'Hindi ko nasagot ang tanong. Subukan muli.';
+      chatHistory.push({ role: 'assistant', content: reply });
+      loadWrap.querySelector('.bubble').innerHTML = reply.replace(/\n/g, '<br>');
+    } catch (e) {
+      loadWrap.querySelector('.bubble').innerHTML = 'May error na naganap. Siguraduhing tama ang API key at may internet connection.';
+    }
+  }
+
+  function askQuick(q) {
+    document.getElementById('chatInput').value = q;
+    sendChat();
+  }
+
+  function askAbout(q) {
+    showPanel('chat', document.querySelectorAll('.nav-btn')[0]);
+    document.getElementById('chatInput').value = q;
+    sendChat();
+  }
+
+  function doSearch() {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    if (!q) return;
+    const results = docs.filter(d => d.title.toLowerCase().includes(q) || d.content.toLowerCase().includes(q));
+    const box = document.getElementById('searchResults');
+    if (!results.length) {
+      box.innerHTML = `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:40px;">Walang nahanap para sa "<strong>${q}</strong>".</div>`;
+      return;
+    }
+    box.innerHTML = results.map(d => {
+      const idx = d.content.toLowerCase().indexOf(q);
+      const snippet = idx >= 0 ? '...' + d.content.substring(Math.max(0, idx - 60), idx + 120) + '...' : d.content.substring(0, 150) + '...';
+      return `<div class="result-card" onclick="askAbout('Ipaliwanag ang ${d.title}')">
+        <h3>${d.title}</h3>
+        <p>${snippet}</p>
+        <div class="result-meta">${getCategoryBadge(d.category)}<span class="badge" style="background:#f5f3ee;color:var(--gray-600);">${d.date}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  init();
+</script>
+</body>
+</html>
