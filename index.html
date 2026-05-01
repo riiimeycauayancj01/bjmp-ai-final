@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     :root {
       --navy: #0d2137;
@@ -498,11 +499,39 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = pdf.numPages;
     let fullText = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
+
+    for (let i = 1; i <= totalPages; i++) {
+      showToast(`Binabasa ang page ${i} of ${totalPages}...`);
       const page = await pdf.getPage(i);
+
+      // Try digital text first
       const content = await page.getTextContent();
-      fullText += content.items.map(item => item.str).join(' ') + '\n';
+      const pageText = content.items.map(item => item.str).join(' ').trim();
+
+      if (pageText.length > 30) {
+        // Digital PDF — may text na
+        fullText += pageText + '\n';
+      } else {
+        // Scanned PDF — kailangan ng OCR
+        showToast(`OCR processing page ${i}/${totalPages}... sandali lang`);
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng+fil', {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              showToast(`OCR Page ${i}/${totalPages}: ${Math.round(m.progress * 100)}%`);
+            }
+          }
+        });
+        fullText += text + '\n';
+      }
     }
     return fullText.trim();
   }
@@ -510,28 +539,35 @@
   async function handleFileUpload(e) {
     const files = Array.from(e.target.files);
     const cat = document.getElementById('uploadCategory').value;
-    showToast(`Nag-a-upload... sandali lang.`);
     let loaded = 0;
+
     for (const f of files) {
       try {
         let content = '';
         const ext = f.name.split('.').pop().toLowerCase();
+
         if (ext === 'pdf') {
+          showToast(`Binabasa ang PDF: ${f.name}`);
           content = await extractPdfText(f);
-          if (!content) content = '[PDF na walang text — subukan ang copy-paste ng content]';
+          if (!content || content.length < 20) {
+            content = '[Hindi ma-extract ang text. Subukan ang manual copy-paste.]';
+          }
         } else {
           content = await f.text();
         }
+
         const title = f.name.replace(/\.[^.]+$/, '');
         docs.push({ title, category: cat, content, date: new Date().toLocaleDateString('fil-PH'), size: f.size });
         loaded++;
       } catch (err) {
-        showToast(`Error sa ${f.name}. Subukan ang copy-paste.`);
+        console.error(err);
+        showToast(`❌ Error sa ${f.name}: ${err.message}`);
       }
     }
+
     localStorage.setItem('bjmp_docs', JSON.stringify(docs));
     renderDocs();
-    showToast(`${loaded} file(s) nai-upload na! ✅`);
+    showToast(`✅ ${loaded} file(s) nai-upload at na-OCR na!`);
     e.target.value = '';
   }
 
